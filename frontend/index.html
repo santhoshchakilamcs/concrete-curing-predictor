@@ -15,6 +15,7 @@
 <label>Coarse aggregate</label><input name="coarse_agg" type="number" step="any" value="968" required>
 <label>Fine aggregate</label><input name="fine_agg" type="number" step="any" value="779.5" required>
 <label>Age (days, 1 to 365)</label><input name="age_days" type="number" step="any" value="28" required>
+<label>Target strength (PSI, optional, for earliest-age check)</label><input name="target_psi" type="number" step="any" value="4000">
 <button type="submit">Predict strength</button>
 </form>
 <div id="out"></div>
@@ -24,13 +25,20 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   e.preventDefault();
   const d = Object.fromEntries(new FormData(e.target).entries());
   for (const k in d) d[k] = parseFloat(d[k]);
+  const target_psi = d.target_psi; delete d.target_psi;
   const r = await fetch('/api/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d)});
   const j = await r.json();
   if (!r.ok) { document.getElementById('out').textContent = 'Error: ' + JSON.stringify(j); return; }
+  let target_html = '';
+  if (target_psi) {
+    const tr = await fetch('/api/target', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...d, target_psi})});
+    const tj = await tr.json();
+    target_html = tr.ok ? (tj.earliest_age_days ? '<br>Earliest age reaching ' + target_psi.toLocaleString() + ' PSI: ' + tj.earliest_age_days + ' days' : '<br>Target ' + target_psi.toLocaleString() + ' PSI is not reached by 365 days in this model (max ' + tj.max_strength_psi.toLocaleString() + ' PSI)') : '';
+  }
   document.getElementById('out').innerHTML =
     '<b>' + j.strength_psi.toLocaleString() + ' PSI</b> (' + j.strength_mpa + ' MPa)<br>' +
     'Water-to-cement ratio: ' + j.water_cement_ratio + '<br>' +
-    'Model inference time: ' + j.inference_ms_model_only + ' ms (model only, not network)<br>' +
+    'Model inference time: ' + j.inference_ms_model_only + ' ms (model only, not network)' + target_html + '<br>' +
     '<small>' + j.note + '</small>';
   const max = Math.max(...j.curve.map(c => c.strength_psi));
   document.getElementById('curve').innerHTML = '<tr><th>Age</th><th>PSI</th><th></th></tr>' +
