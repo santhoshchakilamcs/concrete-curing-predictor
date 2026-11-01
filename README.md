@@ -2,7 +2,11 @@
 
 A web tool for a job-site supervisor: enter a concrete mix and its age,
 get a predicted compressive strength in PSI and MPa, plus a strength
-curve from 1 to 365 days for that same mix.
+curve from 1 to 365 days for that same mix. You can also enter a
+target PSI, and the app reports the earliest age in the standard
+curve at which the model reaches it, or that it is not reached by
+365 days. That target check is a model prediction, not a safety
+certification and not a replacement for a real test.
 
 ## Data, honestly
 - Real data: UCI Concrete Compressive Strength, 1,030 samples.
@@ -53,3 +57,9 @@ start (about 1 second), or you can run `python train.py` first.
 - `GET /api/health` — status and test metrics
 - `POST /api/predict` — mix + age, returns MPa, PSI,
   water-to-cement ratio, model-only inference time, and the age curve
+- `POST /api/target` — mix + age + `target_psi`, returns the
+  earliest age in the standard curve (1, 3, 7, 14, 28, 56, 90,
+  180, 365 days) at which predicted strength reaches the target,
+  or null if it is not reached by 365 days, plus the maximum
+  strength in the curve. The frontend has a target PSI field
+  that calls this endpoint after a prediction.
