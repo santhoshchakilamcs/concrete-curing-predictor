@@ -86,4 +86,33 @@ def predict(m: Mix):
     }
 
 
+class TargetMix(Mix):
+    target_psi: float = Field(gt=0)
+
+
+@app.post("/api/target")
+def target(m: TargetMix):
+    """Earliest age in the standard curve at which predicted strength
+    reaches or exceeds target_psi. Returns null if the curve never
+    reaches it by 365 days. This is a model prediction, not a
+    safety certification, and it does not replace a real test."""
+    curve = []
+    earliest = None
+    for age in [1, 3, 7, 14, 28, 56, 90, 180, 365]:
+        c_mpa, _ = predict_row(m, float(age))
+        psi = round(c_mpa * MPA_TO_PSI)
+        curve.append({"age_days": age, "strength_mpa": round(c_mpa, 2),
+                      "strength_psi": psi})
+        if earliest is None and psi >= m.target_psi:
+            earliest = age
+    return {
+        "target_psi": m.target_psi,
+        "earliest_age_days": earliest,
+        "reached_by_365_days": earliest is not None,
+        "max_strength_psi": max(c["strength_psi"] for c in curve),
+        "curve": curve,
+        "note": "Prediction from historical mixes, not a safety certification.",
+    }
+
+
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "frontend", html=True), name="frontend")
