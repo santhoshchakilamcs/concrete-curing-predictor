@@ -1,0 +1,25 @@
+{
+  "n_samples": 1030,
+  "n_train": 824,
+  "n_test": 206,
+  "features": [
+    "cement",
+    "slag",
+    "fly_ash",
+    "water",
+    "superplasticizer",
+    "coarse_agg",
+    "fine_agg",
+    "age_days",
+    "water_cement_ratio"
+  ],
+  "rmse_mpa": 4.5372280094269835,
+  "rmse_psi": 658.0704760312709,
+  "mae_mpa": 2.9944392793558117,
+  "mae_psi": 434.30748419920826,
+  "r2": 0.9201088517523084,
+  "fit_seconds": 0.7172444200004975,
+  "inference_ms_p50_model_only": 1.1073830000896123,
+  "inference_ms_p99_model_only": 67.96957500046119,
+  "note": "Inference time is model-only. End-to-end phone time adds network and server time."
+}

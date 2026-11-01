@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concrete Curing &amp; Strength Predictor</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:16px}label{display:block;margin:10px 0 2px}input{width:100%;padding:10px;font-size:16px;box-sizing:border-box}button{width:100%;padding:14px;font-size:18px;margin-top:16px;background:#0b5; color:#fff;border:0;border-radius:8px}#out{margin-top:20px;font-size:20px}#curve td{padding:4px 12px 4px 0}.bar{height:12px;background:#0b5}</style>
+</head><body>
+<h1>Concrete Curing &amp; Strength Predictor</h1>
+<p>Enter a mix in kg per cubic metre and the age in days. The model was trained on 1,030 real UCI concrete samples. This is a prediction from historical mixes, not a safety certification and not a replacement for a real 28-day test. Temperature and humidity are not in that dataset, so they are not model inputs here.</p>
+<form id="f">
+<label>Cement</label><input name="cement" type="number" step="any" value="272.9" required>
+<label>Blast furnace slag</label><input name="slag" type="number" step="any" value="22">
+<label>Fly ash</label><input name="fly_ash" type="number" step="any" value="0">
+<label>Water</label><input name="water" type="number" step="any" value="185" required>
+<label>Superplasticizer</label><input name="superplasticizer" type="number" step="any" value="6.35">
+<label>Coarse aggregate</label><input name="coarse_agg" type="number" step="any" value="968" required>
+<label>Fine aggregate</label><input name="fine_agg" type="number" step="any" value="779.5" required>
+<label>Age (days, 1 to 365)</label><input name="age_days" type="number" step="any" value="28" required>
+<button type="submit">Predict strength</button>
+</form>
+<div id="out"></div>
+<table id="curve"></table>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target).entries());
+  for (const k in d) d[k] = parseFloat(d[k]);
+  const r = await fetch('/api/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d)});
+  const j = await r.json();
+  if (!r.ok) { document.getElementById('out').textContent = 'Error: ' + JSON.stringify(j); return; }
+  document.getElementById('out').innerHTML =
+    '<b>' + j.strength_psi.toLocaleString() + ' PSI</b> (' + j.strength_mpa + ' MPa)<br>' +
+    'Water-to-cement ratio: ' + j.water_cement_ratio + '<br>' +
+    'Model inference time: ' + j.inference_ms_model_only + ' ms (model only, not network)<br>' +
+    '<small>' + j.note + '</small>';
+  const max = Math.max(...j.curve.map(c => c.strength_psi));
+  document.getElementById('curve').innerHTML = '<tr><th>Age</th><th>PSI</th><th></th></tr>' +
+    j.curve.map(c => '<tr><td>' + c.age_days + 'd</td><td>' + c.strength_psi.toLocaleString() + '</td><td><div class="bar" style="width:' + (c.strength_psi/max*220) + 'px"></div></td></tr>').join('');
+});
+</script>
+</body></html>
